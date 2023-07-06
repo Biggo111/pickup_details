@@ -8,6 +8,7 @@ import 'package:pickup_details/widgets/datepicker_container.dart';
 import 'package:pickup_details/widgets/dropdownmenu_container.dart';
 import 'package:pickup_details/widgets/save_button.dart';
 import 'package:http/http.dart' as http;
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class PickupDetailsScreen extends StatefulWidget {
   final String screenTitle;
@@ -28,29 +29,75 @@ class _PickupDetailsScreenState extends State<PickupDetailsScreen> {
   String? searchQuery;
   List<Map<String, dynamic>> searchResults = [];
 
+  // void fetchSearchResults(String query) async {
+  //   if (query.length >= 2) {
+  //     final url = Uri.parse(
+  //         'https://api.instantpickup.delivery/api/v2/trip/get-address');
+  //     final response = await http.post(
+  //       url,
+  //       headers: {'Content-Type': 'application/json'},
+  //       body: jsonEncode({'query': query}),
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       final jsonData = jsonDecode(response.body);
+  //       final List<dynamic> data = jsonData['data'];
+
+  //       setState(() {
+  //         searchResults = List<Map<String, dynamic>>.from(data);
+  //       });
+  //     }
+  //   } else {
+  //     setState(() {
+  //       searchResults = [];
+  //     });
+  //   }
+  // }
+
   void fetchSearchResults(String query) async {
-    if (query.length >= 2) {
-      final url = Uri.parse(
-          'https://api.instantpickup.delivery/api/v2/trip/get-address');
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'query': query}),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonData = jsonDecode(response.body);
-        final List<dynamic> data = jsonData['data'];
-
-        setState(() {
-          searchResults = List<Map<String, dynamic>>.from(data);
-        });
-      }
-    } else {
+    if (query.length < 2) {
       setState(() {
         searchResults = [];
       });
+      return;
     }
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('No Internet'),
+            content: Text('Please check your internet connection'),
+            actions: <Widget>[
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
+    final url = Uri.parse(
+        'https://api.instantpickup.delivery//api/v2/trip/get-address');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'query': query}),
+    );
+
+    final jsonData = jsonDecode(response.body);
+    final List<dynamic> data = jsonData['data'];
+
+    setState(() {
+      searchResults = List<Map<String, dynamic>>.from(data);
+    });
   }
 
   @override
